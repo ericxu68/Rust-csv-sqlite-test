@@ -24,7 +24,10 @@ mod tests {
     fn test_input() {
         let res = match input_csv("./26 Sep - 20 Okt 22.csv") {
             Ok(()) => "success",
-            Err(_) => "fail",
+            Err(err) => {
+                println!("{err}");
+                "fail"
+            }
         };
         assert_eq!(res, "success");
     }

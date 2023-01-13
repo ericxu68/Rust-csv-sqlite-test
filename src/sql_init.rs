@@ -7,7 +7,7 @@ pub async fn initialize(path: &str,script: &str) -> Result<(),sqlx::Error> {
     if !std::path::Path::new(path).exists(){
         std::fs::File::create(path)?;
     }
-    //make databas econnection pool
+    //make database connection pool
     let pool = SqlitePoolOptions::new().max_connections(5).connect(path).await?;
     //execute query file
     sqlx::query(&read_to_string(script).unwrap()).execute(&pool).await?;
