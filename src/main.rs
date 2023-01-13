@@ -1,23 +1,24 @@
 use serde::Deserialize;
 
 pub mod csv_in;
+pub mod sql_init;
 
 #[derive(Debug,Deserialize,Clone,PartialEq)]
-struct Input<'a>{
-    date_full: &'a str,
-    date: &'a str,
-    clock: &'a str,
-    pin: &'a str,
-    nip: &'a str,
-    name: &'a str,
-    occupation: Option<&'a str>,
-    departement: Option<&'a str>,
-    office : Option<&'a str>,
-    verivication : &'a str,
-    io :&'a str,
-    workcode : &'a str,
-    sn :&'a str,
-    machine: &'a str
+struct Input{
+    date_full: String,
+    date: String,
+    clock: String,
+    pin: String,
+    nip: String,
+    name: String,
+    occupation: Option<String>,
+    departement: Option<String>,
+    office : Option<String>,
+    verivication : String,
+    io :String,
+    workcode : String,
+    sn :String,
+    machine: String
 }
 
 fn main() {
