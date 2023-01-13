@@ -32,6 +32,14 @@ enum PrayTime {
     Tahajud
 }
 
+#[allow(dead_code)]
+#[derive(Debug,PartialEq)]
+struct Hold {
+    pin: String,
+    date: (u32,u32,u32),
+    pray:PrayTime,
+    db_date:String
+}
 
 #[allow(dead_code)]
 fn parse_time(time:&str)->Result<DateTime<FixedOffset>,Box<dyn Error>> {
