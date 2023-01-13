@@ -3,6 +3,8 @@ use serde::Deserialize;
 pub mod csv_in;
 pub mod sql_init;
 
+
+
 #[derive(Debug,Deserialize,Clone,PartialEq)]
 struct Input{
     date_full: String,
