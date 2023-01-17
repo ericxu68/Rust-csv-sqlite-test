@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+use chrono::FixedOffset;
 use serde::Deserialize;
-use std::cell::Cell;
+use std::cell::RefCell;
 
 pub mod csv_in;
 pub mod sql_init;
+pub mod csv_out;
 
 #[derive(Debug,Deserialize,Clone,PartialEq)]
 pub struct Input{
@@ -55,13 +57,13 @@ pub struct Hold {
 pub struct Holder {
     pin: String,
     name: String,
-    pray: Cell<Vec<PrayHold>>
+    pray: RefCell<Vec<PrayHold>>
 }
 #[derive(Debug,PartialEq)]
 pub struct PrayHold {
     date: (u32,u32,u32),
     pray:PrayTime,
-    db_date:String,
+    db_date:chrono::DateTime<FixedOffset>,
     machine:String
 }
 #[derive(Debug)]
@@ -70,11 +72,13 @@ struct CSVOUT {
     name: String,
     date: (u32,u32,u32),
     pray: PrayTime,
-    db_date: String,
+    db_date: chrono::DateTime<FixedOffset>,
     machine: String
 }
-fn main() {
 
+static mut CACHE:Hold=Hold{holder:Vec::new()};
+
+fn main() {
         let pray:TimeLimit = TimeLimit { 
             duhur_s: "12:00".to_owned(),
             duhur_f: "13:30".to_owned(),
@@ -89,5 +93,10 @@ fn main() {
             tahajud_s: "02:00".to_owned(),
             tahajud_f: "03:20".to_owned()
         };
-    csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
+    let hold = csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
+    if hold.is_ok(){
+        unsafe{
+            CACHE = hold.unwrap()
+        }
+    }
 }

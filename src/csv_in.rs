@@ -1,6 +1,6 @@
 use csv;
 use std::error::Error;
-use std::cell::Cell;
+use std::cell::RefCell;
 use std::time::Instant;
 use crate::Input;
 use chrono::prelude::*;
@@ -10,7 +10,7 @@ use crate::TimeLimit;
 
 
 
-fn parse_time(time:&str)->Result<DateTime<FixedOffset>,Box<dyn Error>> {
+pub fn parse_time(time:&str)->Result<DateTime<FixedOffset>,Box<dyn Error>> {
     //change string to datetime
     Ok(DateTime::parse_from_str(time, "%d-%m-%Y %H:%M:%S %z")?)
 }
@@ -69,8 +69,8 @@ impl PrayTime{
     }
 }
 impl Hold{
-    fn report_in(&mut self,pin:String,name:String,date:(u32,u32,u32)
-        ,pray:PrayTime,db_date:String,machine:String)->bool{
+    pub fn report_in(&mut self,pin:String,name:String,date:(u32,u32,u32)
+        ,pray:PrayTime,db_date:DateTime<FixedOffset>,machine:String)->bool{
         //add valid input record methode
         let iter = &mut self.holder.iter().filter(|&e|&e.pin==&pin);
         let mut cell:Vec<crate::PrayHold>;
@@ -79,16 +79,16 @@ impl Hold{
             cell = vec![crate::PrayHold{pray,date,db_date,machine}];
             self.holder.push(crate::Holder{
                 name,pin,
-                pray:Cell::new(cell)
+                pray:RefCell::new(cell)
             });
         }else{
             cell = iter.clone().next().unwrap().pray.take();
             if &cell.iter().filter(|&e|&e.date==&date&&e.pray==pray.clone()).count() == &0{
                 //only add record if at same day no double praytime
                 cell.push(crate::PrayHold{pray,date,db_date,machine});
-                iter.next().unwrap().pray.set(cell);
+                iter.next().unwrap().pray.replace(cell);
             }else {
-                iter.next().unwrap().pray.set(cell);
+                iter.next().unwrap().pray.replace(cell);
                 return false;
             }
         }
@@ -104,7 +104,7 @@ impl Input{
                         name:self.name.to_owned(),
                         pin:self.pin.to_owned(),
                         pray:t,
-                        db_date:self.date_full.to_owned(),
+                        db_date:parse_time([self.date_full.as_str()," +07:00"].concat().as_str()).unwrap(),
                         date:d,
                         machine:self.machine.to_owned()
                     }),
@@ -115,7 +115,7 @@ impl Input{
         }
     }
 }
-pub fn input_csv(path: &str) -> Result<(),Box<dyn Error>> {
+fn input_csv(path: &str) -> Result<(),Box<dyn Error>> {
     let mut reader = csv::Reader::from_path(path)?;
     for i in reader.records(){
         if i.is_err(){
@@ -193,7 +193,11 @@ mod tests {
     #[test]
     fn test_parse() {
         let parsed = parse_time("18-10-2022 15:02:45 +07:00").unwrap();
-        assert_eq!(parsed.hour(),15)
+        assert_eq!(parsed.hour(),15);
+        assert_eq!(parsed.minute(),2);
+        assert_eq!(parsed.day(),18);
+        assert_eq!(parsed.month(),10);
+        assert_eq!(parsed.year(),2022)
     }
     #[test]
     fn test_limit() {
@@ -216,7 +220,10 @@ mod tests {
             tahajud_s: "03:00".to_owned(),
             tahajud_f: "03:30".to_owned()
         };
-        assert_eq!(pray.validator("18-10-2022 15:02:45"),Some(PrayTime::Asyar))
+        assert_eq!(pray.validator("18-10-2022 15:02:45"),Some(PrayTime::Asyar));
+        assert_eq!(pray.validator("18-10-2022 15:42:15"),None);
+        assert_eq!(pray.validator("18-10-2022 03:42:45"),None);
+        assert_eq!(pray.validator("18-10-2022 03:30:45"),Some(PrayTime::Tahajud));
     }
     #[test]
     fn test_name() {
@@ -225,14 +232,15 @@ mod tests {
     #[test]
     fn test_hold() {
         let mut hold = new_hold();
-        hold.report_in("123".to_string(), "idk".to_string(), (1,1,1), PrayTime::Duhur,"somestring".to_string(),"term".to_owned());
+        let date = parse_time("18-10-2022 15:02:45 +07:00").unwrap();
+        hold.report_in("123".to_string(), "idk".to_string(), (1,1,1), PrayTime::Duhur,date.to_owned(),"term".to_owned());
         assert_eq!(hold.holder[0].pin,"123".to_string());
         assert_eq!(hold.holder[0].pray.get_mut()[0].pray,PrayTime::Duhur );
-        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, date.to_owned(),"term".to_owned());
         assert_eq!(hold.holder[0].pray.get_mut().len(),2 );
-        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, date.to_owned(),"term".to_owned());
         assert_eq!(hold.holder[0].pray.get_mut().len(),2 );
-        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,2), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,2), PrayTime::Asyar, date.to_owned(),"term".to_owned());
         assert_eq!(hold.holder[0].pray.get_mut().len(),3 );
     }
 }
