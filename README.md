@@ -22,7 +22,7 @@ This Project is my personal training project for using Rust-lang
 * [x] Using `Sqlx` to query `.sql` file
 * [x] Using `CSV` to read `.csv` file
 * [x] Using `Serde` to Deserialize `.csv` Output
-* [ ] Using `Chrono` to get proper date format from `.csv`
+* [x] Using `Chrono` to get proper date format from `.csv`
 * [ ] Using `Chrono` to filter serde's struct
 * [ ] Using `sqlx` to write data on database with serde's sruct
 * [ ] Using `Tokio` to get faster `sqlx` concurrent write queries
