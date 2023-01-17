@@ -4,7 +4,6 @@ use crate::Input;
 use chrono::prelude::*;
 
 
-#[allow(dead_code)]
 #[derive(Debug)]
 struct TimeLimit {
     duhur_s: String,
@@ -21,7 +20,6 @@ struct TimeLimit {
     tahajud_f: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug,PartialEq, Eq)]
 enum PrayTime {
     Duhur,
@@ -32,7 +30,6 @@ enum PrayTime {
     Tahajud
 }
 
-#[allow(dead_code)]
 #[derive(Debug,PartialEq)]
 struct Hold {
     pin: String,
@@ -41,17 +38,14 @@ struct Hold {
     db_date:String
 }
 
-#[allow(dead_code)]
 fn parse_time(time:&str)->Result<DateTime<FixedOffset>,Box<dyn Error>> {
     Ok(DateTime::parse_from_str(time, "%d-%m-%Y %H:%M:%S %z")?)
 }
-#[allow(dead_code)]
 fn parse_limit(time:&str)->u32{
     let parsed = time.split(":").map(|e|e.parse::<u32>().unwrap()).collect::<Vec<_>>();
     parsed[0]*60+parsed[1]
 }
 
-#[allow(dead_code)]
 impl TimeLimit{
     fn validator(&self,time:&str)->Option<PrayTime>{
         let parsed  = parse_time(&[time," +07:00"].concat()).unwrap();
@@ -73,7 +67,6 @@ impl TimeLimit{
     }
 }
 
-#[allow(dead_code)]
 impl PrayTime{
     fn get_name(&self)->String{
         match self {
