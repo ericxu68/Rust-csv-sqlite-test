@@ -1,6 +1,7 @@
 use csv;
 use std::error::Error;
 use std::cell::Cell;
+use std::time::Instant;
 use crate::Input;
 use chrono::prelude::*;
 use crate::PrayTime;
@@ -10,19 +11,32 @@ use crate::TimeLimit;
 
 
 fn parse_time(time:&str)->Result<DateTime<FixedOffset>,Box<dyn Error>> {
+    //change string to datetime
     Ok(DateTime::parse_from_str(time, "%d-%m-%Y %H:%M:%S %z")?)
 }
 fn parse_limit(time:&str)->u32{
-    let parsed = time.split(":").map(|e|e.parse::<u32>().unwrap()).collect::<Vec<_>>();
-    parsed[0]*60+parsed[1]
+    //change string time to minute integer
+    let mut parsed = time.split(":").map(|e|e.parse::<u32>().unwrap());
+    parsed.next().unwrap()*60+parsed.next().unwrap()
+}
+fn date2tuple(time:&str)->Result<(u32,u32,u32),Box<dyn Error>>{
+    // day-month-year
+    let input = parse_time([time," +07:00"].concat().as_str())?;
+    Ok((input.day() as u32,input.month() as u32,input.year() as u32))
 }
 pub fn new_hold()->Hold{
+    //init new struct hold
     Hold { holder: Vec::new() }
 }
 
 impl TimeLimit{
     fn validator(&self,time:&str)->Option<PrayTime>{
-        let parsed  = parse_time(&[time," +07:00"].concat()).unwrap();
+        //get enum pray time from input
+        let parsed;
+        match parse_time(&[time," +07:00"].concat()){
+            Ok(d)=> parsed = d,
+            Err(_)=>return None
+        };
         let minute = parsed.hour()*60 + parsed.minute();
         if minute>=parse_limit(&self.duhur_s)&& minute<=parse_limit(&self.duhur_f){
             return Some(PrayTime::Duhur);
@@ -43,6 +57,7 @@ impl TimeLimit{
 
 impl PrayTime{
     fn get_name(&self)->String{
+        //get praytime name
         match self {
             PrayTime::Duhur=>"duhur".to_owned(),
             PrayTime::Isya=>"isya".to_owned(),
@@ -54,28 +69,49 @@ impl PrayTime{
     }
 }
 impl Hold{
-    fn report_in(&mut self,pin:String,name:String
-        ,date:(u32,u32,u32),pray:PrayTime,db_date:String){
+    fn report_in(&mut self,pin:String,name:String,date:(u32,u32,u32)
+        ,pray:PrayTime,db_date:String,machine:String)->bool{
+        //add valid input record methode
         let iter = &mut self.holder.iter().filter(|&e|&e.pin==&pin);
         let mut cell:Vec<crate::PrayHold>;
         if iter.clone().count()==0{
             //create new user if no user yet
-            cell = vec![crate::PrayHold{
-                pray,date,db_date
-            }];
+            cell = vec![crate::PrayHold{pray,date,db_date,machine}];
             self.holder.push(crate::Holder{
                 name,pin,
                 pray:Cell::new(cell)
-            })
+            });
         }else{
             cell = iter.clone().next().unwrap().pray.take();
             if &cell.iter().filter(|&e|&e.date==&date&&e.pray==pray.clone()).count() == &0{
                 //only add record if at same day no double praytime
-                cell.push(crate::PrayHold{
-                    pray,date,db_date
-                });
+                cell.push(crate::PrayHold{pray,date,db_date,machine});
+                iter.next().unwrap().pray.set(cell);
+            }else {
+                iter.next().unwrap().pray.set(cell);
+                return false;
             }
-            iter.next().unwrap().pray.set(cell)
+        }
+        true
+    }
+}
+impl Input{
+    fn valid_out(&self,time:&TimeLimit)->Option<crate::CSVOUT>{
+        match date2tuple(&self.date_full) {
+            Ok(d) =>{
+                match time.validator(&self.date_full) {
+                    Some(t) => Some(crate::CSVOUT{
+                        name:self.name.to_owned(),
+                        pin:self.pin.to_owned(),
+                        pray:t,
+                        db_date:self.date_full.to_owned(),
+                        date:d,
+                        machine:self.machine.to_owned()
+                    }),
+                    None => None,
+                }
+            },
+            Err(_) => None,
         }
     }
 }
@@ -93,26 +129,51 @@ pub fn input_csv(path: &str) -> Result<(),Box<dyn Error>> {
     Ok(())
 }
 
-// pub fn csv2database(path: &str,tl:&TimeLimit) -> Result<(),Box<dyn Error>> {
-//     let mut reader = csv::Reader::from_path(path)?;
-//     let mut err_count:usize = 0;
-//     for i in reader.records(){
-//         //first error read check
-//         if i.is_err(){
-//             err_count += 1;
-//             continue;
-//         }
-//         let record = i.unwrap();
-//         //second error parse check
-//         let deserialize:Result<Input,csv::Error> = record.deserialize(None);
-//         if deserialize.is_err(){
-//             err_count += 1;
-//             continue;
-//         }
-//         let mut out:Hold = Vec::new();
-//     }
-//     Ok(())
-// }
+pub fn csv2database(path: &str,tl:&TimeLimit) -> Result<Hold,Box<dyn Error>> {
+    let now = Instant::now();
+    let mut reader = csv::Reader::from_path(path)?;
+    let mut err_count:usize = 0;
+    let mut valid_count:usize = 0;
+    let mut invalid_count:usize = 0;
+    let mut data_count:usize = 0;
+    let mut double_count = 0;
+    let mut hold = new_hold();
+    for i in reader.records(){
+        data_count += 1;
+        //first error read check
+        if i.is_err(){
+            err_count += 1;
+            continue;
+        }
+        let record = i.unwrap();
+        //second error parse check
+        let deserialize:Result<Input,csv::Error> = record.deserialize(None);
+        if deserialize.is_err(){
+            err_count += 1;
+            continue;
+        }
+        match deserialize?.valid_out(tl){
+            Some(t)=>{
+                match hold.report_in(t.pin, t.name.to_owned(), t.date, t.pray, t.db_date, t.machine){
+                    true=>valid_count += 1,
+                    false=>double_count += 1
+                };
+                println!("parsed {} data",t.name);
+            }
+            None=> invalid_count += 1
+        };
+    }
+    println!("-----------------------------------------------------");
+    println!("*********************  FINISHED *********************");
+    println!("-----------------------------------------------------");
+    println!("Processing speed = {:.2?}",now.elapsed());
+    println!("Total Data Processed = {data_count}");
+    println!("Error Count = {err_count}");
+    println!("Invalid Data Count = {invalid_count}");
+    println!("Double Data Count = {double_count}");
+    println!("Valid Data Count = {valid_count}");
+    Ok(hold)
+}
 
 #[cfg(test)]
 mod tests {
@@ -164,8 +225,14 @@ mod tests {
     #[test]
     fn test_hold() {
         let mut hold = new_hold();
-        hold.report_in("123".to_string(), "idk".to_string(), (1,1,1), PrayTime::Duhur,"somestring".to_string());
+        hold.report_in("123".to_string(), "idk".to_string(), (1,1,1), PrayTime::Duhur,"somestring".to_string(),"term".to_owned());
         assert_eq!(hold.holder[0].pin,"123".to_string());
         assert_eq!(hold.holder[0].pray.get_mut()[0].pray,PrayTime::Duhur );
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        assert_eq!(hold.holder[0].pray.get_mut().len(),2 );
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,1), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        assert_eq!(hold.holder[0].pray.get_mut().len(),2 );
+        hold.report_in("123".to_string(), "hmm".to_string(), (1,1,2), PrayTime::Asyar, "idc".to_string(),"term".to_owned());
+        assert_eq!(hold.holder[0].pray.get_mut().len(),3 );
     }
 }

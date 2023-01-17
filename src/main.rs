@@ -61,13 +61,33 @@ pub struct Holder {
 pub struct PrayHold {
     date: (u32,u32,u32),
     pray:PrayTime,
-    db_date:String
+    db_date:String,
+    machine:String
+}
+#[derive(Debug)]
+struct CSVOUT {
+    pin: String,
+    name: String,
+    date: (u32,u32,u32),
+    pray: PrayTime,
+    db_date: String,
+    machine: String
 }
 fn main() {
-    let res = csv_in::input_csv("./26 Sep - 20 Okt 22.csv");
-    if res.is_ok(){
-        println!("success");
-    }else {
-        println!("{}",res.unwrap_err());
-    }
+
+        let pray:TimeLimit = TimeLimit { 
+            duhur_s: "12:00".to_owned(),
+            duhur_f: "13:30".to_owned(),
+            asyar_s: "15:00".to_owned(),
+            asyar_f: "16:30".to_owned(),
+            maghrib_s: "18:00".to_owned(),
+            maghrib_f: "19:00".to_owned(),
+            isya_s: "19:30".to_owned(),
+            isya_f: "20:30".to_owned(),
+            subuh_s: "03:30".to_owned(),
+            subuh_f: "05:30".to_owned(),
+            tahajud_s: "02:00".to_owned(),
+            tahajud_f: "03:20".to_owned()
+        };
+    csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
 }
