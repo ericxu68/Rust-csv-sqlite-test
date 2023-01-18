@@ -25,7 +25,7 @@ pub struct Input{
     machine: String
 }
 
-#[derive(Debug,PartialEq, Clone)]
+#[derive(Debug,PartialEq, Clone,Eq,PartialOrd, Ord)]
 pub enum PrayTime {
     Duhur,
     Asyar,
@@ -51,15 +51,17 @@ pub struct TimeLimit {
     tahajud_f: String,
 }
 
+#[derive(Debug,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Hold {
     holder: Vec<Holder>
 }
+#[derive(Debug,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Holder {
     pin: String,
     name: String,
     pray: RefCell<Vec<PrayHold>>
 }
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Eq,PartialOrd, Ord)]
 pub struct PrayHold {
     date: (u32,u32,u32),
     pray:PrayTime,
@@ -80,14 +82,14 @@ static mut CACHE:Hold=Hold{holder:Vec::new()};
 
 fn main() {
         let pray:TimeLimit = TimeLimit { 
-            duhur_s: "12:00".to_owned(),
+            duhur_s: "11:00".to_owned(),
             duhur_f: "13:30".to_owned(),
-            asyar_s: "15:00".to_owned(),
+            asyar_s: "14:00".to_owned(),
             asyar_f: "16:30".to_owned(),
             maghrib_s: "18:00".to_owned(),
-            maghrib_f: "19:00".to_owned(),
-            isya_s: "19:30".to_owned(),
-            isya_f: "20:30".to_owned(),
+            maghrib_f: "18:30".to_owned(),
+            isya_s: "18:31".to_owned(),
+            isya_f: "19:30".to_owned(),
             subuh_s: "03:30".to_owned(),
             subuh_f: "05:30".to_owned(),
             tahajud_s: "02:00".to_owned(),
@@ -96,7 +98,10 @@ fn main() {
     let hold = csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
     if hold.is_ok(){
         unsafe{
-            CACHE = hold.unwrap()
+            CACHE = hold.unwrap();
+            let machine = CACHE.get_machine();
+            println!("{:?}",machine);
+            CACHE.direct_csv(machine[0].as_str(), "./out.csv").unwrap();
         }
     }
 }

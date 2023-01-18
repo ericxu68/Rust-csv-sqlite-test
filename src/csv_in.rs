@@ -131,6 +131,7 @@ fn input_csv(path: &str) -> Result<(),Box<dyn Error>> {
 
 pub fn csv2database(path: &str,tl:&TimeLimit) -> Result<Hold,Box<dyn Error>> {
     let now = Instant::now();
+    println!("*********************  STARTED *********************");
     let mut reader = csv::Reader::from_path(path)?;
     let mut err_count:usize = 0;
     let mut valid_count:usize = 0;
@@ -138,6 +139,7 @@ pub fn csv2database(path: &str,tl:&TimeLimit) -> Result<Hold,Box<dyn Error>> {
     let mut data_count:usize = 0;
     let mut double_count = 0;
     let mut hold = new_hold();
+    print!("\n");
     for i in reader.records(){
         data_count += 1;
         //first error read check
@@ -158,11 +160,13 @@ pub fn csv2database(path: &str,tl:&TimeLimit) -> Result<Hold,Box<dyn Error>> {
                     true=>valid_count += 1,
                     false=>double_count += 1
                 };
-                println!("parsed {} data",t.name);
+                print!("\r");
+                print!("**[ {} data total ]**",data_count);
             }
             None=> invalid_count += 1
         };
     }
+    print!("\n");
     println!("-----------------------------------------------------");
     println!("*********************  FINISHED *********************");
     println!("-----------------------------------------------------");

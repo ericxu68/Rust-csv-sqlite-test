@@ -40,6 +40,6 @@ there is two path, one is using database and second use cache (unsafe)
 ### Cache (unsafe) Route
 * [x] safely initialize mutable static varable as cache
 * [x] can modify and take ownership of cache to free its value
-* [ ] using `CSV` to write `.csv` out from cache
-* [ ] benchmark all the process time
+* [x] using `CSV` to write `.csv` out from cache
+* [x] benchmark all the process time
 
