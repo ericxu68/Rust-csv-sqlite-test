@@ -6,6 +6,7 @@ use std::cell::RefCell;
 pub mod csv_in;
 pub mod sql_init;
 pub mod csv_out;
+pub mod html_in;
 
 #[derive(Debug,Deserialize,Clone,PartialEq)]
 pub struct Input{
@@ -81,27 +82,33 @@ struct CSVOUT {
 static mut CACHE:Hold=Hold{holder:Vec::new()};
 
 fn main() {
-        let pray:TimeLimit = TimeLimit { 
-            duhur_s: "11:00".to_owned(),
-            duhur_f: "13:30".to_owned(),
-            asyar_s: "14:00".to_owned(),
-            asyar_f: "16:30".to_owned(),
-            maghrib_s: "18:00".to_owned(),
-            maghrib_f: "18:30".to_owned(),
-            isya_s: "18:31".to_owned(),
-            isya_f: "19:30".to_owned(),
-            subuh_s: "03:30".to_owned(),
-            subuh_f: "05:30".to_owned(),
-            tahajud_s: "02:00".to_owned(),
-            tahajud_f: "03:20".to_owned()
-        };
-    let hold = csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
-    if hold.is_ok(){
-        unsafe{
-            CACHE = hold.unwrap();
-            let machine = CACHE.get_machine();
-            println!("{:?}",machine);
-            CACHE.direct_csv(machine[0].as_str(), "./out.csv").unwrap();
+    // let pray:TimeLimit = TimeLimit { 
+    //     duhur_s: "11:00".to_owned(),
+    //     duhur_f: "13:30".to_owned(),
+    //     asyar_s: "14:00".to_owned(),
+    //     asyar_f: "16:30".to_owned(),
+    //     maghrib_s: "18:00".to_owned(),
+    //     maghrib_f: "18:30".to_owned(),
+    //     isya_s: "18:31".to_owned(),
+    //     isya_f: "19:30".to_owned(),
+    //     subuh_s: "03:30".to_owned(),
+    //     subuh_f: "05:30".to_owned(),
+    //     tahajud_s: "02:00".to_owned(),
+    //     tahajud_f: "03:20".to_owned()
+    // };
+    // let hold = csv_in::csv2database("./26 Sep - 20 Okt 22.csv",&pray);
+    // if hold.is_ok(){
+    //     unsafe{
+    //         CACHE = hold.unwrap();
+    //         let machine = CACHE.get_machine();
+    //         println!("{:?}",machine);
+    //         CACHE.direct_csv(machine[0].as_str(), "./out.csv").unwrap();
+    //     }
+    // }
+    let idk = html_in::find_table(std::fs::read_to_string("./26 Sep - 20 Okt 22.html").unwrap().as_str());
+    for i in idk.unwrap(){
+        for j in i{
+            println!("{}",j)
         }
     }
 }
