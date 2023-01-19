@@ -1,4 +1,31 @@
 use scraper::{Html,ElementRef,Selector};
+use crate::csv_in::{new_hold,parse_time,date2tuple};
+use crate::{Hold,TimeLimit,CSVOUT};
+use std::fs::read_to_string;
+use std::error::Error;
+use std::time::Instant;
+
+
+
+fn get_same_csv_out(tl:&TimeLimit,date:&str,name:String,pin:String,machine:String)->Option<CSVOUT>{
+    match date2tuple(date){
+        Ok(d)=>{
+            match tl.validator(date){
+                Some(t)=> Some(CSVOUT { 
+                    pin,
+                    name, 
+                    date: d, 
+                    pray: t, 
+                    db_date: parse_time([date," +07:00"].concat().as_str()).unwrap(), 
+                    machine
+                }),
+                None => None
+            }
+        }
+        Err(_)=>None
+    }
+}
+
 
 pub fn find_table(http_data: &str) -> Option<Vec<Vec<String>>> {
     let css = |selector| Selector::parse(selector).unwrap();
@@ -16,6 +43,57 @@ pub fn find_table(http_data: &str) -> Option<Vec<Vec<String>>> {
     rows.next();
     let rows: Vec<_> = rows.map(|row| get_unwrap_cells(row, "td","font")).collect();
     Some(rows)
+}
+pub fn html2hold(path:&str,tl:&TimeLimit)->Result<Hold,Box<dyn Error>>{
+    let now = Instant::now();
+    println!("************************ START *************************");
+    let html_data = read_to_string(path)?;
+        let css = |selector| Selector::parse(selector).unwrap();
+    let get_unwrap_cells = |row:ElementRef,selector,wraper|{
+        row.select(&css(selector)).map(|wrap|wrap.select(&css(wraper)).next().unwrap()
+        .inner_html().trim().to_string()).collect()
+    };
+    let mut err_count:usize = 0;
+    let mut invalid_count:usize = 0;
+    let mut data_count:usize = 0;
+    let mut double_count:usize = 0;
+    let mut valid_count:usize = 0;
+    let mut hold = new_hold();
+    let html = Html::parse_fragment(&html_data);
+    let table_out = html.select(&css("table")).next().unwrap();
+    let tbody = css("tbody");
+    let table = table_out.select(&tbody).next().unwrap();
+    let tr = css("tr");
+    let mut rows = table.select(&tr);
+    rows.next();
+    rows.next();
+    for row in rows{
+        data_count += 1;
+        let cell:Vec<_> = get_unwrap_cells(row,"td","font");
+        if cell.len() != 14 {
+            err_count += 1;
+            continue;
+        }
+        match get_same_csv_out(tl, &cell[0], cell[5].to_owned(), cell[3].to_owned(), cell[13].to_owned()){
+            Some(d)=>{
+                match hold.report_in(d.pin, d.name.to_owned(), d.date, d.pray, d.db_date, d.machine){
+                    true =>valid_count += 1,
+                    false =>double_count += 1
+                }
+            }
+            None=> invalid_count += 1
+        };
+    }
+    println!("-----------------------------------------------------");
+    println!("*********************  FINISHED *********************");
+    println!("-----------------------------------------------------");
+    println!("Processing speed = {:.2?}",now.elapsed());
+    println!("Total Data Processed = {data_count}");
+    println!("Error Count = {err_count}");
+    println!("Invalid Data Count = {invalid_count}");
+    println!("Double Data Count = {double_count}");
+    println!("Valid Data Count = {valid_count}");
+    Ok(hold)
 }
 
 

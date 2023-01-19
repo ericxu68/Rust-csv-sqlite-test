@@ -19,7 +19,7 @@ fn parse_limit(time:&str)->u32{
     let mut parsed = time.split(":").map(|e|e.parse::<u32>().unwrap());
     parsed.next().unwrap()*60+parsed.next().unwrap()
 }
-fn date2tuple(time:&str)->Result<(u32,u32,u32),Box<dyn Error>>{
+pub fn date2tuple(time:&str)->Result<(u32,u32,u32),Box<dyn Error>>{
     // day-month-year
     let input = parse_time([time," +07:00"].concat().as_str())?;
     Ok((input.day() as u32,input.month() as u32,input.year() as u32))
@@ -30,7 +30,7 @@ pub fn new_hold()->Hold{
 }
 
 impl TimeLimit{
-    fn validator(&self,time:&str)->Option<PrayTime>{
+    pub fn validator(&self,time:&str)->Option<PrayTime>{
         //get enum pray time from input
         let parsed;
         match parse_time(&[time," +07:00"].concat()){

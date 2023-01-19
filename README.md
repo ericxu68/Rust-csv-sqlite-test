@@ -32,8 +32,8 @@ there is two path, one is using database and second use cache (unsafe)
 
 ### Html input Route
 * [x] Using `Scraper` to parse html input
-* [ ] Using `Chrono` to get proper date from `html` table
-* [ ] Deserialize the table to get common struct as from Csv input Route
+* [x] Using `Chrono` to get proper date from `html` table
+* [x] Deserialize the table to get common struct as from Csv input Route
 
 ### Database Route
 * [x] Using `Sqlx` for initialize Sqlite as driver
@@ -51,5 +51,5 @@ there is two path, one is using database and second use cache (unsafe)
 * [x] safely initialize mutable static varable as cache
 * [x] can modify and take ownership of cache to free its value
 * [x] using `CSV` to write `.csv` out from cache
-* [ ] benchmark all the process time
+* [x] benchmark all the process time
 
