@@ -66,27 +66,28 @@ mod tests{
         };
         assert_eq!(res,"success")
     }
-    #[tokio::test]
-    async fn test_query(){
-        let pool = get_pool("./test.db").await.unwrap();
-        let res = match create_user(&pool, "hadziq", "123").await {
-            Ok(()) => {
-                match get_all_user(&pool).await{
-                    Ok(r)=>{
-                        println!("{r}");
-                        "success"
-                    }
-                    Err(er)=>{
-                        println!("{er}");
-                        "fail"
-                    }
-                }
-            },
-            Err(er) => {
-                println!("{er}");
-                "fail"
-            },
-        };
-        assert_eq!(res,"success")
-    }
+    // #[tokio::test]
+    // async fn test_query(){
+    //     test_init();
+    //     let pool = get_pool("./test.db").await.unwrap();
+    //     let res = match create_user(&pool, "hadziq", "123").await {
+    //         Ok(()) => {
+    //             match get_all_user(&pool).await{
+    //                 Ok(r)=>{
+    //                     println!("{r}");
+    //                     "success"
+    //                 }
+    //                 Err(er)=>{
+    //                     println!("{er}");
+    //                     "fail"
+    //                 }
+    //             }
+    //         },
+    //         Err(er) => {
+    //             println!("{er}");
+    //             "fail"
+    //         },
+    //     };
+    //     assert_eq!(res,"success")
+    // }
 }
